@@ -45,8 +45,8 @@ namespace BS.Output.UnfuddleStack
                                  "Screenshot",
                                  String.Empty, 
                                  true,
-                                 String.Empty,
-                                 "1");
+                                 1,
+                                 1);
 
       return EditOutput(Owner, output);
 
@@ -69,8 +69,8 @@ namespace BS.Output.UnfuddleStack
                           edit.FileName,
                           edit.FileFormat,
                           edit.OpenItemInBrowser,
-                          Output.LastProjectID,
-                          Output.LastIssueID);
+                          Output.LastMessageID,
+                          Output.LastTicketNumber);
       }
       else
       {
@@ -91,8 +91,8 @@ namespace BS.Output.UnfuddleStack
       outputValues.Add(new OutputValue("OpenItemInBrowser", Convert.ToString(Output.OpenItemInBrowser)));
       outputValues.Add(new OutputValue("FileName", Output.FileName));
       outputValues.Add(new OutputValue("FileFormat", Output.FileFormat));
-      outputValues.Add(new OutputValue("LastProjectID", Output.LastProjectID));
-      outputValues.Add(new OutputValue("LastIssueID", Output.LastIssueID));
+      outputValues.Add(new OutputValue("LastMessageID", Output.LastMessageID.ToString()));
+      outputValues.Add(new OutputValue("LastTicketNumber", Output.LastTicketNumber.ToString()));
 
       return outputValues;
       
@@ -108,8 +108,8 @@ namespace BS.Output.UnfuddleStack
                         OutputValues["FileName", "Screenshot"].Value, 
                         OutputValues["FileFormat", ""].Value,
                         Convert.ToBoolean(OutputValues["OpenItemInBrowser", Convert.ToString(true)].Value),
-                        OutputValues["LastProjectID", string.Empty].Value, 
-                        OutputValues["LastIssueID", "1"].Value);
+                        Convert.ToInt32(OutputValues["LastMessageID", "1"].Value),
+                        Convert.ToInt32(OutputValues["LastTicketNumber", "1"].Value));
 
     }
 
