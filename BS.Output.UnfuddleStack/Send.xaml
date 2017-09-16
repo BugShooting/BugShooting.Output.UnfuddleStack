@@ -25,7 +25,7 @@
         <ColumnDefinition Width="*"/>
       </Grid.ColumnDefinitions>
       <Label Grid.Column="0">Project</Label>
-      <ComboBox x:Name="ProjectComboBox" Grid.Column="1" SelectedValuePath="ProjectID" local:Validation.Required="True" />
+      <ComboBox x:Name="ProjectComboBox" Grid.Column="1" SelectedValuePath="ID" DisplayMemberPath="Title" local:Validation.Required="True" />
     </Grid>
     <Grid x:Name="MessageTitleControls" Margin="4">
       <Grid.ColumnDefinitions>

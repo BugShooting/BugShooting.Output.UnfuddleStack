@@ -10,7 +10,7 @@ namespace BS.Output.UnfuddleStack
   partial class Send : Window
   {
  
-    public Send(string url, List<Object> projects, string lastProjectID, int lastMessageID, int lastTicketNumber, string fileName)
+    public Send(string url, int lastProjectID, int lastMessageID, int lastTicketNumber, List<Project> projects, string fileName)
     {
       InitializeComponent();
 

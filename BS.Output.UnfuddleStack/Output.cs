@@ -11,6 +11,7 @@
     string fileName;
     string fileFormat;
     bool openItemInBrowser;
+    int lastProjectID;
     int lastMessageID;
     int lastTicketNumber;
 
@@ -21,6 +22,7 @@
                   string fileName, 
                   string fileFormat,
                   bool openItemInBrowser,
+                  int lastProjectID,
                   int lastMessageID,
                   int lastTicketNumber)
     {
@@ -31,6 +33,7 @@
       this.fileName = fileName;
       this.fileFormat = fileFormat;
       this.openItemInBrowser = openItemInBrowser;
+      this.lastProjectID = lastProjectID;
       this.lastMessageID = lastMessageID;
       this.lastTicketNumber = lastTicketNumber;
     }
@@ -74,7 +77,12 @@
     {
       get { return openItemInBrowser; }
     }
-    
+
+    public int LastProjectID
+    {
+      get { return lastProjectID; }
+    }
+
     public int LastMessageID
     {
       get { return lastMessageID; }

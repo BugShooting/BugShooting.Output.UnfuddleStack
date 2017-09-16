@@ -72,6 +72,7 @@
     <Compile Include="Send.xaml.cs">
       <DependentUpon>Send.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UnfuddleStackProxy.cs" />
     <Compile Include="Validation.cs" />
   </ItemGroup>
   <ItemGroup>
