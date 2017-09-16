@@ -15,9 +15,11 @@
   <StackPanel Grid.IsSharedSizeScope="True" Margin="4">
     <TextBlock x:Name="Url" Margin="4" TextWrapping="Wrap" />
     <Separator Margin="4" />
-    <RadioButton x:Name="NewIssue" Content="New issue" Margin="4" Checked="NewIssue_CheckedChanged" Unchecked="NewIssue_CheckedChanged" />
-    <RadioButton x:Name="AttachToIssue" Content="Attach to issue" Margin="4" />
-    <Grid x:Name="ProjectControls" Margin="4">
+    <RadioButton x:Name="NewMessage" Content="New message" Margin="4" Checked="ItemType_CheckedChanged" />
+    <RadioButton x:Name="AttachToMessage" Content="Attach to message" Margin="4" Checked="ItemType_CheckedChanged" />
+    <RadioButton x:Name="NewTicket" Content="New ticket" Margin="4" Checked="ItemType_CheckedChanged" />
+    <RadioButton x:Name="AttachToTicket" Content="Attach to ticket" Margin="4" Checked="ItemType_CheckedChanged" />
+    <Grid Margin="4">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto" SharedSizeGroup="Label"/>
         <ColumnDefinition Width="*"/>
@@ -25,29 +27,53 @@
       <Label Grid.Column="0">Project</Label>
       <ComboBox x:Name="ProjectComboBox" Grid.Column="1" SelectedValuePath="ProjectID" local:Validation.Required="True" />
     </Grid>
-    <Grid x:Name="SummaryControls" Margin="4">
+    <Grid x:Name="MessageTitleControls" Margin="4">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" SharedSizeGroup="Label"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <Label Grid.Column="0">Title</Label>
+      <TextBox x:Name="MessageTitleTextBox" Grid.Column="1" VerticalContentAlignment="Center" local:Validation.Required="True" />
+    </Grid>
+    <Grid x:Name="MessageControls" Margin="4">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" SharedSizeGroup="Label"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <Label Grid.Column="0">Message</Label>
+      <TextBox x:Name="MessageTextBox" Grid.Column="1" VerticalContentAlignment="Center" MaxLines="5" TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto" local:Validation.Required="True" />
+    </Grid>
+    <Grid x:Name="MessageIDControls" Margin="4">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" SharedSizeGroup="Label"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <Label Grid.Column="0">Message ID</Label>
+      <TextBox x:Name="MessageIDTextBox" Grid.Column="1" VerticalContentAlignment="Center" PreviewTextInput="MessageID_PreviewTextInput" local:Validation.Required="True" />
+    </Grid>
+    <Grid x:Name="TicketSummaryControls" Margin="4">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto" SharedSizeGroup="Label"/>
         <ColumnDefinition Width="*"/>
       </Grid.ColumnDefinitions>
       <Label Grid.Column="0">Summary</Label>
-      <TextBox x:Name="SummaryTextBox" Grid.Column="1" VerticalContentAlignment="Center" local:Validation.Required="True" />
+      <TextBox x:Name="TicketSummaryTextBox" Grid.Column="1" VerticalContentAlignment="Center" local:Validation.Required="True" />
     </Grid>
-    <Grid x:Name="DescriptionControls" Margin="4">
+    <Grid x:Name="TicketDescriptionControls" Margin="4">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto" SharedSizeGroup="Label"/>
         <ColumnDefinition Width="*"/>
       </Grid.ColumnDefinitions>
       <Label Grid.Column="0">Description</Label>
-      <TextBox x:Name="DescriptionTextBox" Grid.Column="1" VerticalContentAlignment="Center" MaxLines="5" TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto" local:Validation.Required="True" />
+      <TextBox x:Name="TicketDescriptionTextBox" Grid.Column="1" VerticalContentAlignment="Center" MaxLines="5" TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto" />
     </Grid>
-    <Grid x:Name="IssueIDControls" Margin="4">
+    <Grid x:Name="TicketNumberControls" Margin="4">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto" SharedSizeGroup="Label"/>
         <ColumnDefinition Width="*"/>
       </Grid.ColumnDefinitions>
-      <Label Grid.Column="0">Issue ID</Label>
-      <TextBox x:Name="IssueIDTextBox" Grid.Column="1" VerticalContentAlignment="Center" PreviewTextInput="IssueID_PreviewTextInput" local:Validation.Required="True" />
+      <Label Grid.Column="0">Ticket number</Label>
+      <TextBox x:Name="TicketNumberTextBox" Grid.Column="1" VerticalContentAlignment="Center" PreviewTextInput="TicketNumber_PreviewTextInput" local:Validation.Required="True" />
     </Grid>
     <Grid Margin="4">
       <Grid.ColumnDefinitions>

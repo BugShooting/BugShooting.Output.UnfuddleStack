@@ -10,125 +10,172 @@ namespace BS.Output.UnfuddleStack
   partial class Send : Window
   {
  
-    public Send(string url, string lastProjectID, string lastIssueID, string fileName)
+    public Send(string url, List<Object> projects, string lastProjectID, int lastMessageID, int lastTicketNumber, string fileName)
     {
       InitializeComponent();
-      
-      // TODO
-      //List<ProjectItem> projectItems = new List<ProjectItem>();
-      //InitProjects(projectItems, projects, String.Empty);
-      //ProjectComboBox.ItemsSource = projectItems;
+
+      ProjectComboBox.ItemsSource = projects;
 
       Url.Text = url;
-      NewIssue.IsChecked = true;
+      NewMessage.IsChecked = true;
       ProjectComboBox.SelectedValue = lastProjectID;
-      IssueIDTextBox.Text = lastIssueID;
+      MessageIDTextBox.Text = lastMessageID.ToString();
+      TicketNumberTextBox.Text = lastTicketNumber.ToString();
       FileNameTextBox.Text = fileName;
 
       ProjectComboBox.SelectionChanged += ValidateData;
-      SummaryTextBox.TextChanged += ValidateData;
-      DescriptionTextBox.TextChanged += ValidateData;
-      IssueIDTextBox.TextChanged += ValidateData;
+      MessageTitleTextBox.TextChanged += ValidateData;
+      MessageTextBox.TextChanged += ValidateData;
+      MessageIDTextBox.TextChanged += ValidateData;
+      TicketSummaryTextBox.TextChanged += ValidateData;
+      TicketNumberTextBox.TextChanged += ValidateData;
       FileNameTextBox.TextChanged += ValidateData;
       ValidateData(null, null);
 
     }
 
-    public bool CreateNewIssue
+    public SendItemType ItemType
     {
-      get { return NewIssue.IsChecked.Value; }
+      get
+      {
+        if (NewMessage.IsChecked.Value)
+        {
+          return SendItemType.NewMessage;
+        }
+        else if (AttachToMessage.IsChecked.Value)
+        {
+          return SendItemType.AttachToMessage;
+        }
+        else if (NewTicket.IsChecked.Value)
+        {
+          return SendItemType.NewTicket;
+        }
+        else
+        {
+          return SendItemType.AttachToTicket;
+        }
+      }
     }
  
     public string ProjectID
     {
       get { return (string)ProjectComboBox.SelectedValue; }
     }
-      
-    public string Summary
+
+    public string MessageTitle
     {
-      get { return SummaryTextBox.Text; }
+      get { return MessageTitleTextBox.Text; }
     }
 
-    public string Description
+    public string Message
     {
-      get { return DescriptionTextBox.Text; }
+      get { return MessageTextBox.Text; }
     }
 
-    public string IssueID
+    public int MessageID
     {
-      get { return IssueIDTextBox.Text; }
+      get { return Convert.ToInt32(MessageIDTextBox.Text); }
+    }
+
+    public string TicketSummary
+    {
+      get { return TicketSummaryTextBox.Text; }
+    }
+
+    public string TicketDescription
+    {
+      get { return TicketDescriptionTextBox.Text; }
+    }
+
+    public string TicketNumber
+    {
+      get { return TicketNumberTextBox.Text; }
     }
 
     public string FileName
     {
       get { return FileNameTextBox.Text; }
     }
-
-
-    // TODO
-    //private void InitProjects(List<ProjectItem> projectItems, ProjectData[] projects, string parentProjectName)
-    //{
-    //  string fullName = null;
-
-    //  foreach (ProjectData project in projects)
-    //  {
-    //    if (parentProjectName == string.Empty)
-    //    {
-    //      fullName = project.name;
-    //    }
-    //    else
-    //    {
-    //      fullName = parentProjectName + " - " + project.name;
-    //    }
-
-    //    projectItems.Add(new ProjectItem(project.id, fullName));
-
-    //    if ((project.subprojects != null))
-    //    {
-    //      InitProjects(projectItems, project.subprojects, fullName);
-    //    }
-
-    //  }
-
-    //}
-
-    private void NewIssue_CheckedChanged(object sender, EventArgs e)
+        
+    private void ItemType_CheckedChanged(object sender, EventArgs e)
     {
 
-      if (NewIssue.IsChecked.Value)
+      switch (ItemType)
       {
-        ProjectControls.Visibility = Visibility.Visible;
-        SummaryControls.Visibility = Visibility.Visible;
-        DescriptionControls.Visibility = Visibility.Visible;
-        IssueIDControls.Visibility = Visibility.Collapsed;
+        case SendItemType.NewMessage:
+          MessageTitleControls.Visibility = Visibility.Visible;
+          MessageControls.Visibility = Visibility.Visible;
+          MessageIDControls.Visibility = Visibility.Collapsed;
+          TicketSummaryControls.Visibility = Visibility.Collapsed;
+          TicketDescriptionControls.Visibility = Visibility.Collapsed;
+          TicketNumberControls.Visibility = Visibility.Collapsed;
 
-        SummaryTextBox.SelectAll();
-        SummaryTextBox.Focus();
-      }
-      else
-      {
-        ProjectControls.Visibility = Visibility.Collapsed;
-        SummaryControls.Visibility = Visibility.Collapsed;
-        DescriptionControls.Visibility = Visibility.Collapsed;
-        IssueIDControls.Visibility = Visibility.Visible;
-        
-        IssueIDTextBox.SelectAll();
-        IssueIDTextBox.Focus();
+          MessageTitleTextBox.SelectAll();
+          MessageTitleTextBox.Focus();
+
+          break;
+
+        case SendItemType.AttachToMessage:
+          MessageTitleControls.Visibility = Visibility.Collapsed;
+          MessageControls.Visibility = Visibility.Collapsed;
+          MessageIDControls.Visibility = Visibility.Visible;
+          TicketSummaryControls.Visibility = Visibility.Collapsed;
+          TicketDescriptionControls.Visibility = Visibility.Collapsed;
+          TicketNumberControls.Visibility = Visibility.Collapsed;
+
+          MessageIDTextBox.SelectAll();
+          MessageIDTextBox.Focus();
+
+          break;
+
+        case SendItemType.NewTicket:
+          MessageTitleControls.Visibility = Visibility.Collapsed;
+          MessageControls.Visibility = Visibility.Collapsed;
+          MessageIDControls.Visibility = Visibility.Collapsed;
+          TicketSummaryControls.Visibility = Visibility.Visible;
+          TicketDescriptionControls.Visibility = Visibility.Visible;
+          TicketNumberControls.Visibility = Visibility.Collapsed;
+
+          TicketSummaryTextBox.SelectAll();
+          TicketSummaryTextBox.Focus();
+
+          break;
+
+        case SendItemType.AttachToTicket:
+          MessageTitleControls.Visibility = Visibility.Collapsed;
+          MessageControls.Visibility = Visibility.Collapsed;
+          MessageIDControls.Visibility = Visibility.Collapsed;
+          TicketSummaryControls.Visibility = Visibility.Collapsed;
+          TicketDescriptionControls.Visibility = Visibility.Collapsed;
+          TicketNumberControls.Visibility = Visibility.Visible;
+
+          TicketNumberTextBox.SelectAll();
+          TicketNumberTextBox.Focus();
+
+          break;
       }
 
       ValidateData(null, null);
 
     }
 
-    private void IssueID_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    private void MessageID_PreviewTextInput(object sender, TextCompositionEventArgs e)
     {
       e.Handled = Regex.IsMatch(e.Text, "[^0-9]+");
     }
-    
+
+    private void TicketNumber_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+      e.Handled = Regex.IsMatch(e.Text, "[^0-9]+");
+    }
+
     private void ValidateData(object sender, EventArgs e)
     {
-      OK.IsEnabled = ((CreateNewIssue && Validation.IsValid(ProjectComboBox) && Validation.IsValid(SummaryTextBox) && Validation.IsValid(DescriptionTextBox)) ||
-                      (!CreateNewIssue && Validation.IsValid(IssueIDTextBox))) &&
+      OK.IsEnabled = Validation.IsValid(ProjectComboBox) &&
+                     ((ItemType==SendItemType.NewMessage && Validation.IsValid(MessageTitleTextBox) && Validation.IsValid(MessageTextBox)) ||
+                      (ItemType == SendItemType.AttachToMessage && Validation.IsValid(MessageIDTextBox)) || 
+                      (ItemType == SendItemType.NewTicket && Validation.IsValid(TicketSummaryTextBox) && Validation.IsValid(TicketDescriptionTextBox)) ||
+                      (ItemType == SendItemType.AttachToTicket && Validation.IsValid(TicketNumberTextBox))) &&
                      Validation.IsValid(FileNameTextBox);
     }
 
@@ -139,28 +186,12 @@ namespace BS.Output.UnfuddleStack
 
   }
 
-  internal class ProjectItem
+  enum SendItemType
   {
-    
-    private string projectID;
-    private string fullName;
-
-    public ProjectItem(string projectID, string fullName)
-    {
-      this.projectID = projectID;
-      this.fullName = fullName;
-    }
-
-    public string ProjectID
-    {
-      get { return projectID; }
-    }
-
-    public override string ToString()
-    {
-      return fullName;
-    }
-
+    NewMessage = 0,
+    AttachToMessage = 1,
+    NewTicket = 2,
+    AttachToTicket = 3
   }
 
 }
