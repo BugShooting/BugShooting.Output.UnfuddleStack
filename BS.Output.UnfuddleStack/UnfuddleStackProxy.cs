@@ -508,7 +508,7 @@ namespace BS.Output.UnfuddleStack
       get { return failedMessage; }
     }
 
-  }
+  } 
 
   class Project
   {
