@@ -57,9 +57,9 @@ namespace BS.Output.UnfuddleStack
       }
     }
  
-    public string ProjectID
+    public int ProjectID
     {
-      get { return (string)ProjectComboBox.SelectedValue; }
+      get { return (int)ProjectComboBox.SelectedValue; }
     }
 
     public string MessageTitle
@@ -87,9 +87,9 @@ namespace BS.Output.UnfuddleStack
       get { return TicketDescriptionTextBox.Text; }
     }
 
-    public string TicketNumber
+    public int TicketNumber
     {
-      get { return TicketNumberTextBox.Text; }
+      get { return Convert.ToInt32(TicketNumberTextBox.Text); }
     }
 
     public string FileName
@@ -174,7 +174,7 @@ namespace BS.Output.UnfuddleStack
       OK.IsEnabled = Validation.IsValid(ProjectComboBox) &&
                      ((ItemType==SendItemType.NewMessage && Validation.IsValid(MessageTitleTextBox) && Validation.IsValid(MessageTextBox)) ||
                       (ItemType == SendItemType.AttachToMessage && Validation.IsValid(MessageIDTextBox)) || 
-                      (ItemType == SendItemType.NewTicket && Validation.IsValid(TicketSummaryTextBox) && Validation.IsValid(TicketDescriptionTextBox)) ||
+                      (ItemType == SendItemType.NewTicket && Validation.IsValid(TicketSummaryTextBox)) ||
                       (ItemType == SendItemType.AttachToTicket && Validation.IsValid(TicketNumberTextBox))) &&
                      Validation.IsValid(FileNameTextBox);
     }

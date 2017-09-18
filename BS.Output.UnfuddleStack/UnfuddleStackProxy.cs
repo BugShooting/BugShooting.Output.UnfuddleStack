@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using System.Xml;
+using System.Linq;
 
 namespace BS.Output.UnfuddleStack
 {
@@ -20,7 +20,32 @@ namespace BS.Output.UnfuddleStack
       {
         string requestUrl = GetApiUrl(url, "projects");
         string resultData = await GetData(requestUrl, userName, password);
-        List<Project> projects = FromJson<List<Project>>(resultData);
+
+        List<Project> projects = new List<Project>();
+
+        XmlDocument xmlDoc = new XmlDocument();
+        xmlDoc.LoadXml(resultData);
+        
+        foreach (XmlNode node in xmlDoc.GetElementsByTagName("project"))
+        {
+
+          int projectID = 0;
+          string projectTitle = string.Empty;
+
+          foreach (XmlNode childNode in node.ChildNodes)
+          {
+            switch (childNode.Name)
+            {
+              case "id":
+                projectID = Convert.ToInt32(childNode.InnerText);
+                break;
+              case "title":
+                projectTitle = childNode.InnerText;
+                break;
+            }
+          }
+          projects.Add(new Project(projectID, projectTitle));
+        }
 
         return new GetProjectsResult(ResultStatus.Success, null, projects);
 
@@ -46,16 +71,15 @@ namespace BS.Output.UnfuddleStack
 
     }
 
-    static internal async Task<CreateIssueResult> CreateIssue(string url, string userName, string password, string projectKey, int issueTypeID, string summary, string description)
+    static internal async Task<CreateMessageResult> CreateMessage(string url, string userName, string password, int projectID, string title, string message)
     {
 
       try
       {
-        string requestUrl = GetApiUrl(url, "issue");
-        string resultData = await SendData(requestUrl, userName, password, String.Format("{{\"fields\":{{\"project\":{{\"key\":\"{0}\"}},\"summary\":\"{1}\",\"description\":\"{2}\",\"issuetype\": {{\"id\":\"{3}\"}}}}}}\"", HttpUtility.HtmlEncode(projectKey), HttpUtility.HtmlEncode(summary), HttpUtility.HtmlEncode(description), issueTypeID));
-        string issueKey = FromJson<CreateIssueDataResult>(resultData).IssueKey;
-
-        return new CreateIssueResult(ResultStatus.Success, null, issueKey);
+        string requestUrl = GetApiUrl(url, String.Format("projects/{0}/messages", projectID));
+        int messageID = await CreateItem(requestUrl, userName, password, String.Format("<message><title>{0}</title><body>{1}</body></message>", HttpUtility.HtmlEncode(title), HttpUtility.HtmlEncode(message)));
+     
+        return new CreateMessageResult(ResultStatus.Success, messageID, null);
 
       }
       catch (WebException ex) when (ex.Response is HttpWebResponse)
@@ -67,13 +91,10 @@ namespace BS.Output.UnfuddleStack
           switch (response.StatusCode)
           {
             case HttpStatusCode.Unauthorized:
-              return new CreateIssueResult(ResultStatus.LoginFailed, null, null);
-
-            case HttpStatusCode.BadRequest:
-              return new CreateIssueResult(ResultStatus.Failed, FromJson<ErrorResult>(response).GetAllErrorMessages(), null);
+              return new CreateMessageResult(ResultStatus.LoginFailed, 0, null);
 
             default:
-              return new CreateIssueResult(ResultStatus.Failed, response.StatusDescription, null);
+              return new CreateMessageResult(ResultStatus.Failed, 0, response.StatusDescription);
           }
 
         }
@@ -82,15 +103,89 @@ namespace BS.Output.UnfuddleStack
 
     }
 
-    static internal async Task<Result> AddCommentToIssue(string url, string userName, string password, string issueKey, string comment)
+    static internal async Task<CreateTicketResult> CreateTicket(string url, string userName, string password, int projectID, string summary, string description)
+    {
+
+      try
+      {
+        string requestUrl = GetApiUrl(url, String.Format("projects/{0}/tickets", projectID));
+        int ticketID = await CreateItem(requestUrl, userName, password, String.Format("<ticket><summary>{0}</summary><description>{1}</description><priority>3</priority></ticket>", HttpUtility.HtmlEncode(summary), HttpUtility.HtmlEncode(description)));
+   
+        int ticketNumber = await GetTicketNumber(url, userName, password, projectID, ticketID);
+        
+        return new CreateTicketResult(ResultStatus.Success, ticketNumber, null);
+
+      }
+      catch (WebException ex) when (ex.Response is HttpWebResponse)
+      {
+
+        using (HttpWebResponse response = (HttpWebResponse)ex.Response)
+        {
+
+          switch (response.StatusCode)
+          {
+            case HttpStatusCode.Unauthorized:
+              return new CreateTicketResult(ResultStatus.LoginFailed, 0, null);
+
+            default:
+              return new CreateTicketResult(ResultStatus.Failed, 0, response.StatusDescription);
+          }
+
+        }
+
+      }
+
+    }
+
+    static internal async Task<Result> AddAttachmentToMessage(string url, string userName, string password, int projectID, int messageID, string fullFileName, byte[] fileBytes, string fileMimeType)
     {
 
       try
       {
 
-        string requestUrl = GetApiUrl(url, String.Format("issue/{0}/comment", issueKey));
+        string uploadUrl = GetApiUrl(url, string.Format("projects/{0}/messages/{1}/attachments/upload", projectID, messageID));
+        string fileKey = await UploadFile(uploadUrl, userName, password, fileBytes, fileMimeType);
 
-        await SendData(requestUrl, userName, password, String.Format("{{\"body\": \"{0}\"}}", HttpUtility.HtmlEncode(comment)));
+        string attachUrl = GetApiUrl(url, string.Format("projects/{0}/messages/{1}/attachments", projectID, messageID));
+        await AttachFile(attachUrl, userName, password, fileKey, fullFileName, fileMimeType);
+        
+        return new Result(ResultStatus.Success, null);
+
+      }
+      catch (WebException ex) when (ex.Response is HttpWebResponse)
+      {
+
+        using (HttpWebResponse response = (HttpWebResponse)ex.Response)
+        {
+
+          switch (response.StatusCode)
+          {
+            case HttpStatusCode.Unauthorized:
+              return new Result(ResultStatus.LoginFailed, null);
+
+            default:
+              return new Result(ResultStatus.Failed, response.StatusDescription);
+          }
+
+        }
+
+      }
+
+    }
+
+    static internal async Task<Result> AddAttachmentToTicket(string url, string userName, string password, int projectID, int ticketNumber, string fullFileName, byte[] fileBytes, string fileMimeType)
+    {
+
+      try
+      {
+
+        int ticketID = await GetTicketID(url, userName, password, projectID, ticketNumber); ;
+
+        string uploadUrl = GetApiUrl(url, string.Format("projects/{0}/tickets/{1}/attachments/upload", projectID, ticketID));
+        string fileKey = await UploadFile(uploadUrl, userName, password, fileBytes, fileMimeType);
+
+        string attachUrl = GetApiUrl(url, string.Format("projects/{0}/tickets/{1}/attachments", projectID, ticketID));
+        await AttachFile(attachUrl, userName, password, fileKey, fullFileName, fileMimeType);
 
         return new Result(ResultStatus.Success, null);
 
@@ -106,9 +201,6 @@ namespace BS.Output.UnfuddleStack
             case HttpStatusCode.Unauthorized:
               return new Result(ResultStatus.LoginFailed, null);
 
-            case HttpStatusCode.BadRequest:
-              return new Result(ResultStatus.Failed, FromJson<ErrorResult>(response).GetAllErrorMessages());
-
             default:
               return new Result(ResultStatus.Failed, response.StatusDescription);
           }
@@ -119,52 +211,13 @@ namespace BS.Output.UnfuddleStack
 
     }
 
-    static internal async Task<Result> AddAttachmentToIssue(string url, string userName, string password, string issueKey, string fullFileName, byte[] fileBytes, string fileMimeType)
-    {
-
-      try
-      {
-
-        string requestUrl = GetApiUrl(url, string.Format("issue/{0}/attachments", issueKey));
-
-        await SendFile(requestUrl, userName, password, fullFileName, fileBytes, fileMimeType);
-
-        return new Result(ResultStatus.Success, null);
-
-      }
-      catch (WebException ex) when (ex.Response is HttpWebResponse)
-      {
-
-        using (HttpWebResponse response = (HttpWebResponse)ex.Response)
-        {
-
-          switch (response.StatusCode)
-          {
-            case HttpStatusCode.Unauthorized:
-              return new Result(ResultStatus.LoginFailed, null);
-
-            case HttpStatusCode.Forbidden:
-              return new Result(ResultStatus.Failed, FromJson<ErrorResult>(response).GetAllErrorMessages());
-
-            case HttpStatusCode.NotFound:
-              return new Result(ResultStatus.Failed, FromJson<ErrorResult>(response).GetAllErrorMessages());
-
-            default:
-              return new Result(ResultStatus.Failed, response.StatusDescription);
-          }
-
-        }
-
-      }
-
-    }
 
     private static async Task<string> GetData(string url, string userName, string password)
     {
 
       WebRequest request = WebRequest.Create(url);
       request.Method = "GET";
-      request.ContentType = "application/json";
+      request.ContentType = "application/xml";
 
       string basicAuth = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", userName, password)));
       request.Headers.Add("Authorization", "Basic " + basicAuth);
@@ -182,17 +235,44 @@ namespace BS.Output.UnfuddleStack
 
     }
 
-    private static async Task<string> SendData(string url, string userName, string password, string jsonData)
+    private static async Task<int> GetTicketNumber(string url, string userName, string password, int projectID, int ticketID)
     {
 
-      WebRequest request = WebRequest.Create(url);
+      string ticketUrl = GetApiUrl(url, String.Format("projects/{0}/tickets/{1}", projectID, ticketID));
+      string resultData = await GetData(ticketUrl, userName, password);
+
+      XmlDocument xmlDoc = new XmlDocument();
+      xmlDoc.LoadXml(resultData);
+
+      return Convert.ToInt32(xmlDoc.GetElementsByTagName("number")[0].InnerText);
+
+    }
+
+    private static async Task<int> GetTicketID(string url, string userName, string password, int projectID, int ticketNumber)
+    {
+
+      string ticketUrl = GetApiUrl(url, String.Format("projects/{0}/tickets/by_number/{1}", projectID, ticketNumber));
+      string resultData = await GetData(ticketUrl, userName, password);
+
+      XmlDocument xmlDoc = new XmlDocument();
+      xmlDoc.LoadXml(resultData);
+
+      return Convert.ToInt32(xmlDoc.GetElementsByTagName("id")[0].InnerText);
+
+    }
+
+    private static async Task<int> CreateItem(string url, string userName, string password, string xmlData)
+    {
+
+      HttpWebRequest request = (HttpWebRequest)(WebRequest.Create(url));
       request.Method = "POST";
-      request.ContentType = "application/json";
+      request.Accept = "application/xml";
+      request.ContentType = "application/xml";
 
       string basicAuth = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", userName, password)));
       request.Headers.Add("Authorization", "Basic " + basicAuth);
 
-      byte[] postData = Encoding.UTF8.GetBytes(jsonData);
+      byte[] postData = Encoding.UTF8.GetBytes(xmlData);
 
       request.ContentLength = postData.Length;
 
@@ -204,48 +284,35 @@ namespace BS.Output.UnfuddleStack
 
       using (WebResponse response = await request.GetResponseAsync())
       {
-        using (Stream responseStream = response.GetResponseStream())
+        
+        foreach (string key in response.Headers.Keys)
         {
-          using (StreamReader reader = new StreamReader(responseStream))
+          if (key.Equals("location", StringComparison.InvariantCultureIgnoreCase))
           {
-            return await reader.ReadToEndAsync();
+            return Convert.ToInt32(response.Headers[key].Split('/').Last());
           }
         }
+
+        throw new InvalidOperationException();
+
       }
 
     }
 
-    private static async Task<string> SendFile(string url, string userName, string password, string fullFileName, byte[] fileBytes, string fileMimeType)
+    private static async Task<string> UploadFile(string url, string userName, string password, byte[] fileBytes, string fileMimeType)
     {
-
-      string boundary = string.Format("----------{0}", DateTime.Now.Ticks.ToString("x"));
 
       WebRequest request = WebRequest.Create(url);
       request.Method = "POST";
-      request.ContentType = "multipart/form-data; boundary=" + boundary;
-
-      StringBuilder postData = new StringBuilder();
-      postData.AppendFormat("--{0}", boundary);
-      postData.AppendLine();
-      postData.AppendFormat("Content-Disposition: form-data; name=\"file\"; filename=\"{0}\"\r\n", fullFileName);
-      postData.AppendFormat("Content-Type: {0}\r\n", fileMimeType);
-      postData.AppendLine();
-
-      byte[] postBytes = Encoding.UTF8.GetBytes(postData.ToString());
-      byte[] boundaryBytes = Encoding.ASCII.GetBytes(String.Format("\r\n--{0}--\r\n", boundary));
-
-      request.Headers.Add("X-Atlassian-Token", "no-check");
+      request.ContentType = fileMimeType;
+      request.ContentLength = fileBytes.Length;
 
       string basicAuth = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", userName, password)));
       request.Headers.Add("Authorization", "Basic " + basicAuth);
-
-      request.ContentLength = postBytes.Length + fileBytes.Length + boundaryBytes.Length;
-
+      
       using (Stream requestStream = await request.GetRequestStreamAsync())
       {
-        requestStream.Write(postBytes, 0, postBytes.Length);
         requestStream.Write(fileBytes, 0, fileBytes.Length);
-        requestStream.Write(boundaryBytes, 0, boundaryBytes.Length);
         requestStream.Close();
       }
 
@@ -255,12 +322,44 @@ namespace BS.Output.UnfuddleStack
         {
           using (StreamReader reader = new StreamReader(responseStream))
           {
-            return await reader.ReadToEndAsync();
+            string result = await reader.ReadToEndAsync();
+            XmlDocument xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(result);
+            return xmlDoc.InnerText;
           }
         }
       }
 
     }
+
+    private static async Task AttachFile(string url, string userName, string password, string fileKey, string fullFileName, string fileMimeType)
+    {
+
+      HttpWebRequest request = (HttpWebRequest)(WebRequest.Create(url));
+      request.Method = "POST";
+      request.Accept = "application/xml";
+      request.ContentType = "application/xml";
+
+      string basicAuth = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", userName, password)));
+      request.Headers.Add("Authorization", "Basic " + basicAuth);
+
+      byte[] postData = Encoding.UTF8.GetBytes(String.Format("<attachment><filename>{0}</filename><content-type>{1}</content-type><upload><key>{2}</key></upload></attachment>", fullFileName, fileMimeType, fileKey));
+
+      request.ContentLength = postData.Length;
+
+      using (Stream requestStream = await request.GetRequestStreamAsync())
+      {
+        requestStream.Write(postData, 0, postData.Length);
+        requestStream.Close();
+      }
+
+      using (WebResponse response = await request.GetResponseAsync())
+      {
+        // NOP
+      }
+
+    }
+
 
     private static string GetApiUrl(string url, string method)
     {
@@ -275,40 +374,6 @@ namespace BS.Output.UnfuddleStack
       apiUrl += "api/v1/" + method;
 
       return apiUrl;
-
-    }
-
-    private static T FromJson<T>(string jsonText)
-    {
-
-      DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(T));
-
-      using (MemoryStream stream = new MemoryStream(Encoding.Unicode.GetBytes(jsonText)))
-      {
-        return (T)serializer.ReadObject(stream);
-      }
-
-    }
-
-    private static T FromJson<T>(WebResponse response)
-    {
-
-      string responseContent = null;
-
-      using (StreamReader reader = new StreamReader(response.GetResponseStream()))
-      {
-        responseContent = reader.ReadToEnd();
-      }
-
-      DataContractJsonSerializerSettings serializerSettings = new DataContractJsonSerializerSettings();
-      serializerSettings.UseSimpleDictionaryFormat = true;
-
-      DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(T), serializerSettings);
-
-      using (MemoryStream memoryStream = new MemoryStream(Encoding.Unicode.GetBytes(responseContent)))
-      {
-        return (T)serializer.ReadObject(memoryStream);
-      }
 
     }
 
@@ -379,20 +444,20 @@ namespace BS.Output.UnfuddleStack
 
   }
 
-  class CreateIssueResult
+  class CreateMessageResult
   {
 
     ResultStatus status;
-    string failedMessage;
-    string issueKey;
+    int messageID;
+     string failedMessage;
 
-    public CreateIssueResult(ResultStatus status,
-                             string failedMessage,
-                             string issueKey)
+    public CreateMessageResult(ResultStatus status,
+                               int messageID,
+                               string failedMessage)
     {
       this.status = status;
+      this.messageID = messageID;
       this.failedMessage = failedMessage;
-      this.issueKey = issueKey;
     }
 
     public ResultStatus Status
@@ -400,86 +465,72 @@ namespace BS.Output.UnfuddleStack
       get { return status; }
     }
 
+    public int MessageID
+    {
+      get { return messageID; }
+    }
+
     public string FailedMessage
     {
       get { return failedMessage; }
     }
 
-    public string IssueKey
+  }
+
+  class CreateTicketResult
+  {
+
+    ResultStatus status;
+    int ticketNumber;
+    string failedMessage;
+
+    public CreateTicketResult(ResultStatus status,
+                              int ticketNumber,
+                              string failedMessage)
     {
-      get { return issueKey; }
+      this.status = status;
+      this.ticketNumber = ticketNumber;
+      this.failedMessage = failedMessage;
+    }
+
+    public ResultStatus Status
+    {
+      get { return status; }
+    }
+
+    public int TicketNumber
+    {
+      get { return ticketNumber; }
+    }
+
+    public string FailedMessage
+    {
+      get { return failedMessage; }
     }
 
   }
 
-  [DataContract(), System.Reflection.Obfuscation(Exclude = true)]
   class Project
   {
 
     int id;
     string title;
-
-    [DataMember(Name = "id")]
-    public int Id
+    
+    public Project(int id,
+                   string title)
     {
-      get { return id; }
-      set { id = value; }
+      this.id = id;
+      this.title = title;
     }
 
-    [DataMember(Name = "title")]
+    public int ID
+    {
+      get { return id; }
+    }
+        
     public string Title
     {
       get { return title; }
-      set { title = value; }
-    }
-
-  }
-
-  [DataContract()]
-  class CreateIssueDataResult
-  {
-
-    string issueKey;
-
-    [DataMember(Name = "key")]
-    public string IssueKey
-    {
-      get { return issueKey; }
-      set { issueKey = value; }
-    }
-
-  }
-
-  [DataContract()]
-  class ErrorResult
-  {
-
-    List<string> errorMessages;
-    Dictionary<string, string> errors;
-
-    [DataMember(Name = "errorMessages")]
-    public List<string> ErrorMessages
-    {
-      get { return errorMessages; }
-      set { errorMessages = value; }
-    }
-
-    [DataMember(Name = "errors")]
-    public Dictionary<string, string> Errors
-    {
-      get { return errors; }
-      set { errors = value; }
-    }
-
-    public string GetAllErrorMessages()
-    {
-
-      List<string> allErrorMessages = new List<string>();
-      allErrorMessages.AddRange(errorMessages);
-      allErrorMessages.AddRange(errors.Values);
-
-      return string.Join("\r\n", allErrorMessages);
-
     }
 
   }

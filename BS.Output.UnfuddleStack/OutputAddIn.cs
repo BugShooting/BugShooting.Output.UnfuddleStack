@@ -179,80 +179,108 @@ namespace BS.Output.UnfuddleStack
               return new V3.SendResult(V3.Result.Canceled);
             }
 
-            int issueTypeID;
-            string issueKey;
 
-            // TODO
-            //if (send.CreateNewIssue)
-            //{
+            int messageID = Output.LastMessageID; ;
+            int ticketNumber = Output.LastTicketNumber;
+            
+            switch (send.ItemType)
+            {
+              case SendItemType.NewMessage:
 
-            //  issueTypeID = send.IssueTypeID;
+                CreateMessageResult createMessageResult = await UnfuddleStackProxy.CreateMessage(Output.Url, userName, password, send.ProjectID, send.MessageTitle, send.Message);
+                switch (createMessageResult.Status)
+                {
+                  case ResultStatus.Success:
+                    messageID = createMessageResult.MessageID;
+                    break;
+                  case ResultStatus.LoginFailed:
+                    showLogin = true;
+                    continue;
+                  case ResultStatus.Failed:
+                    return new V3.SendResult(V3.Result.Failed, createMessageResult.FailedMessage);
+                }
 
-            //  // Create issue
-            //  CreateIssueResult createIssueResult = await UnfuddleStackProxy.CreateIssue(Output.Url, userName, password, send.ProjectKey, issueTypeID, send.Summary, send.Description);
-            //  switch (createIssueResult.Status)
-            //  {
-            //    case ResultStatus.Success:
-            //      break;
-            //    case ResultStatus.LoginFailed:
-            //      showLogin = true;
-            //      continue;
-            //    case ResultStatus.Failed:
-            //      return new V3.SendResult(V3.Result.Failed, createIssueResult.FailedMessage);
-            //  }
+                break;
 
-            //  issueKey = createIssueResult.IssueKey;
+              case SendItemType.AttachToMessage:
+                messageID = send.MessageID;
+                break;
 
-            //}
-            //else
-            //{
-            //  issueTypeID = Output.LastIssueTypeID;
-            //  issueKey = String.Format("{0}-{1}", send.ProjectKey, send.IssueID);
+              case SendItemType.NewTicket:
 
-            //  // Add comment to issue
-            //  if (!String.IsNullOrEmpty(send.Comment))
-            //  {
-            //    Result commentResult = await UnfuddleStackProxy.AddCommentToIssue(Output.Url, userName, password, issueKey, send.Comment);
-            //    switch (commentResult.Status)
-            //    {
-            //      case ResultStatus.Success:
-            //        break;
-            //      case ResultStatus.LoginFailed:
-            //        showLogin = true;
-            //        continue;
-            //      case ResultStatus.Failed:
-            //        return new V3.SendResult(V3.Result.Failed, commentResult.FailedMessage);
-            //    }
-            //  }
+                CreateTicketResult createTicketResult = await UnfuddleStackProxy.CreateTicket(Output.Url, userName, password, send.ProjectID, send.TicketSummary, send.TicketDescription);
+                switch (createTicketResult.Status)
+                {
+                  case ResultStatus.Success:
+                    ticketNumber = createTicketResult.TicketNumber;
+                    break;
+                  case ResultStatus.LoginFailed:
+                    showLogin = true;
+                    continue;
+                  case ResultStatus.Failed:
+                    return new V3.SendResult(V3.Result.Failed, createTicketResult.FailedMessage);
+                }
 
-            //}
+                break;
 
-            //string fullFileName = String.Format("{0}.{1}", send.FileName, V3.FileHelper.GetFileExtention(Output.FileFormat));
-            //string fileMimeType = V3.FileHelper.GetMimeType(Output.FileFormat);
-            //byte[] fileBytes = V3.FileHelper.GetFileBytes(Output.FileFormat, ImageData);
-
-            //// Add attachment to issue
-            //Result attachmentResult = await UnfuddleStackProxy.AddAttachmentToIssue(Output.Url, userName, password, issueKey, fullFileName, fileBytes, fileMimeType);
-            //switch (attachmentResult.Status)
-            //{
-            //  case ResultStatus.Success:
-            //    break;
-            //  case ResultStatus.LoginFailed:
-            //    showLogin = true;
-            //    continue;
-            //  case ResultStatus.Failed:
-            //    return new V3.SendResult(V3.Result.Failed, attachmentResult.FailedMessage);
-            //}
+              case SendItemType.AttachToTicket:
+                ticketNumber = send.TicketNumber;
+                break;
+            }
 
 
-            //// Open issue in browser
-            //if (Output.OpenItemInBrowser)
-            //{
-            //  V3.WebHelper.OpenUrl(String.Format("{0}/browse/{1}", Output.Url, issueKey));
-            //}
+            string fullFileName = String.Format("{0}.{1}", send.FileName, V3.FileHelper.GetFileExtention(Output.FileFormat));
+            string fileMimeType = V3.FileHelper.GetMimeType(Output.FileFormat);
+            byte[] fileBytes = V3.FileHelper.GetFileBytes(Output.FileFormat, ImageData);
+            string itemUrl = string.Empty;
+
+            switch (send.ItemType)
+            {
+              case SendItemType.NewMessage:
+              case SendItemType.AttachToMessage:
+
+                Result addAttachmentToMessage = await UnfuddleStackProxy.AddAttachmentToMessage(Output.Url, userName, password, send.ProjectID, messageID, fullFileName, fileBytes, fileMimeType);
+                switch (addAttachmentToMessage.Status)
+                {
+                  case ResultStatus.Success:
+                    itemUrl = String.Format("{0}/projects/{1}/messages/{2}", Output.Url, send.ProjectID, messageID);
+                    break;
+                  case ResultStatus.LoginFailed:
+                    showLogin = true;
+                    continue;
+                  case ResultStatus.Failed:
+                    return new V3.SendResult(V3.Result.Failed, addAttachmentToMessage.FailedMessage);
+                }
+
+                break;
+
+              case SendItemType.NewTicket:
+              case SendItemType.AttachToTicket:
+
+                Result addAttachmentToTicket = await UnfuddleStackProxy.AddAttachmentToTicket(Output.Url, userName, password, send.ProjectID, ticketNumber, fullFileName, fileBytes, fileMimeType);
+                switch (addAttachmentToTicket.Status)
+                {
+                  case ResultStatus.Success:
+                    itemUrl = String.Format("{0}/projects/{1}/tickets/by_number/{2}", Output.Url, send.ProjectID, ticketNumber);
+                    break;
+                  case ResultStatus.LoginFailed:
+                    showLogin = true;
+                    continue;
+                  case ResultStatus.Failed:
+                    return new V3.SendResult(V3.Result.Failed, addAttachmentToTicket.FailedMessage);
+                }
+
+                break;
+            }
 
 
-            // TODO korrekte Last-Daten übergeben anstellen von "111111111"
+            // Open issue in browser
+            if (Output.OpenItemInBrowser)
+            {
+              V3.WebHelper.OpenUrl(itemUrl);
+            }
+
+
             return new V3.SendResult(V3.Result.Success,
                                      new Output(Output.Name,
                                                 Output.Url,
@@ -261,9 +289,9 @@ namespace BS.Output.UnfuddleStack
                                                 Output.FileName,
                                                 Output.FileFormat,
                                                 Output.OpenItemInBrowser,
-                                                111111111,
-                                                111111111,
-                                                111111111));
+                                                send.ProjectID,
+                                                messageID,
+                                                ticketNumber));
 
           }
           catch (FaultException ex) when (ex.Reason.ToString() == "Access denied")
