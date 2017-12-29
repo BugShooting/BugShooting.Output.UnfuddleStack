@@ -1,4 +1,6 @@
-﻿namespace BS.Output.UnfuddleStack
+﻿using BS.Plugin.V3.Output;
+
+namespace BugShooting.Output.UnfuddleStack
 {
 
   public class Output: IOutput 

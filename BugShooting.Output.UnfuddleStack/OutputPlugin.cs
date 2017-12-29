@@ -2,12 +2,15 @@
 using System.Drawing;
 using System.Windows.Forms;
 using System.ServiceModel;
-using System.Web;
 using System.Threading.Tasks;
+using BS.Plugin.V3.Output;
+using BS.Plugin.V3.Common;
+using BS.Plugin.V3.Utilities;
 
-namespace BS.Output.UnfuddleStack
+
+namespace BugShooting.Output.UnfuddleStack
 {
-  public class OutputAddIn: V3.OutputAddIn<Output>
+  public class OutputPlugin: OutputPlugin<Output>
   {
 
     protected override string Name
@@ -81,43 +84,43 @@ namespace BS.Output.UnfuddleStack
 
     }
 
-    protected override OutputValueCollection SerializeOutput(Output Output)
+    protected override OutputValues SerializeOutput(Output Output)
     {
 
-      OutputValueCollection outputValues = new OutputValueCollection();
+      OutputValues outputValues = new OutputValues();
 
-      outputValues.Add(new OutputValue("Name", Output.Name));
-      outputValues.Add(new OutputValue("Url", Output.Url));
-      outputValues.Add(new OutputValue("UserName", Output.UserName));
-      outputValues.Add(new OutputValue("Password",Output.Password, true));
-      outputValues.Add(new OutputValue("OpenItemInBrowser", Convert.ToString(Output.OpenItemInBrowser)));
-      outputValues.Add(new OutputValue("FileName", Output.FileName));
-      outputValues.Add(new OutputValue("FileFormat", Output.FileFormat));
-      outputValues.Add(new OutputValue("LastProjectID", Output.LastProjectID.ToString()));
-      outputValues.Add(new OutputValue("LastMessageID", Output.LastMessageID.ToString()));
-      outputValues.Add(new OutputValue("LastTicketNumber", Output.LastTicketNumber.ToString()));
+      outputValues.Add("Name", Output.Name);
+      outputValues.Add("Url", Output.Url);
+      outputValues.Add("UserName", Output.UserName);
+      outputValues.Add("Password",Output.Password, true);
+      outputValues.Add("OpenItemInBrowser", Convert.ToString(Output.OpenItemInBrowser));
+      outputValues.Add("FileName", Output.FileName);
+      outputValues.Add("FileFormat", Output.FileFormat);
+      outputValues.Add("LastProjectID", Output.LastProjectID.ToString());
+      outputValues.Add("LastMessageID", Output.LastMessageID.ToString());
+      outputValues.Add("LastTicketNumber", Output.LastTicketNumber.ToString());
 
       return outputValues;
       
     }
 
-    protected override Output DeserializeOutput(OutputValueCollection OutputValues)
+    protected override Output DeserializeOutput(OutputValues OutputValues)
     {
 
-      return new Output(OutputValues["Name", this.Name].Value,
-                        OutputValues["Url", ""].Value, 
-                        OutputValues["UserName", ""].Value,
-                        OutputValues["Password", ""].Value, 
-                        OutputValues["FileName", "Screenshot"].Value, 
-                        OutputValues["FileFormat", ""].Value,
-                        Convert.ToBoolean(OutputValues["OpenItemInBrowser", Convert.ToString(true)].Value),
-                        Convert.ToInt32(OutputValues["LastProjectID", "1"].Value),
-                        Convert.ToInt32(OutputValues["LastMessageID", "1"].Value),
-                        Convert.ToInt32(OutputValues["LastTicketNumber", "1"].Value));
+      return new Output(OutputValues["Name", this.Name],
+                        OutputValues["Url", ""], 
+                        OutputValues["UserName", ""],
+                        OutputValues["Password", ""], 
+                        OutputValues["FileName", "Screenshot"], 
+                        OutputValues["FileFormat", ""],
+                        Convert.ToBoolean(OutputValues["OpenItemInBrowser", Convert.ToString(true)]),
+                        Convert.ToInt32(OutputValues["LastProjectID", "1"]),
+                        Convert.ToInt32(OutputValues["LastMessageID", "1"]),
+                        Convert.ToInt32(OutputValues["LastTicketNumber", "1"]));
 
     }
 
-    protected override async Task<V3.SendResult> Send(IWin32Window Owner, Output Output, V3.ImageData ImageData)
+    protected override async Task<SendResult> Send(IWin32Window Owner, Output Output, ImageData ImageData)
     {
 
       try
@@ -128,7 +131,7 @@ namespace BS.Output.UnfuddleStack
         bool showLogin = string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password);
         bool rememberCredentials = false;
 
-        string fileName = V3.FileHelper.GetFileName(Output.FileName, Output.FileFormat, ImageData);
+        string fileName = AttributeHelper.ReplaceAttributes(Output.FileName, ImageData);
 
         while (true)
         {
@@ -144,7 +147,7 @@ namespace BS.Output.UnfuddleStack
 
             if (credentials.ShowDialog() != true)
             {
-              return new V3.SendResult(V3.Result.Canceled);
+              return new SendResult(Result.Canceled);
             }
 
             userName = credentials.UserName;
@@ -165,7 +168,7 @@ namespace BS.Output.UnfuddleStack
                 showLogin = true;
                 continue;
               case ResultStatus.Failed:
-                return new V3.SendResult(V3.Result.Failed, projectsResult.FailedMessage);
+                return new SendResult(Result.Failed, projectsResult.FailedMessage);
             }
 
             // Show send window
@@ -176,7 +179,7 @@ namespace BS.Output.UnfuddleStack
 
             if (!send.ShowDialog() == true)
             {
-              return new V3.SendResult(V3.Result.Canceled);
+              return new SendResult(Result.Canceled);
             }
 
 
@@ -197,7 +200,7 @@ namespace BS.Output.UnfuddleStack
                     showLogin = true;
                     continue;
                   case ResultStatus.Failed:
-                    return new V3.SendResult(V3.Result.Failed, createMessageResult.FailedMessage);
+                    return new SendResult(Result.Failed, createMessageResult.FailedMessage);
                 }
 
                 break;
@@ -218,7 +221,7 @@ namespace BS.Output.UnfuddleStack
                     showLogin = true;
                     continue;
                   case ResultStatus.Failed:
-                    return new V3.SendResult(V3.Result.Failed, createTicketResult.FailedMessage);
+                    return new SendResult(Result.Failed, createTicketResult.FailedMessage);
                 }
 
                 break;
@@ -229,9 +232,9 @@ namespace BS.Output.UnfuddleStack
             }
 
 
-            string fullFileName = String.Format("{0}.{1}", send.FileName, V3.FileHelper.GetFileExtention(Output.FileFormat));
-            string fileMimeType = V3.FileHelper.GetMimeType(Output.FileFormat);
-            byte[] fileBytes = V3.FileHelper.GetFileBytes(Output.FileFormat, ImageData);
+            string fullFileName = String.Format("{0}.{1}", send.FileName, FileHelper.GetFileExtention(Output.FileFormat));
+            string fileMimeType = FileHelper.GetMimeType(Output.FileFormat);
+            byte[] fileBytes = FileHelper.GetFileBytes(Output.FileFormat, ImageData);
             string itemUrl = string.Empty;
 
             switch (send.ItemType)
@@ -239,7 +242,7 @@ namespace BS.Output.UnfuddleStack
               case SendItemType.NewMessage:
               case SendItemType.AttachToMessage:
 
-                Result addAttachmentToMessage = await UnfuddleStackProxy.AddAttachmentToMessage(Output.Url, userName, password, send.ProjectID, messageID, fullFileName, fileBytes, fileMimeType);
+                AttachmentResult addAttachmentToMessage = await UnfuddleStackProxy.AddAttachmentToMessage(Output.Url, userName, password, send.ProjectID, messageID, fullFileName, fileBytes, fileMimeType);
                 switch (addAttachmentToMessage.Status)
                 {
                   case ResultStatus.Success:
@@ -249,7 +252,7 @@ namespace BS.Output.UnfuddleStack
                     showLogin = true;
                     continue;
                   case ResultStatus.Failed:
-                    return new V3.SendResult(V3.Result.Failed, addAttachmentToMessage.FailedMessage);
+                    return new SendResult(Result.Failed, addAttachmentToMessage.FailedMessage);
                 }
 
                 break;
@@ -257,7 +260,7 @@ namespace BS.Output.UnfuddleStack
               case SendItemType.NewTicket:
               case SendItemType.AttachToTicket:
 
-                Result addAttachmentToTicket = await UnfuddleStackProxy.AddAttachmentToTicket(Output.Url, userName, password, send.ProjectID, ticketNumber, fullFileName, fileBytes, fileMimeType);
+                AttachmentResult addAttachmentToTicket = await UnfuddleStackProxy.AddAttachmentToTicket(Output.Url, userName, password, send.ProjectID, ticketNumber, fullFileName, fileBytes, fileMimeType);
                 switch (addAttachmentToTicket.Status)
                 {
                   case ResultStatus.Success:
@@ -267,7 +270,7 @@ namespace BS.Output.UnfuddleStack
                     showLogin = true;
                     continue;
                   case ResultStatus.Failed:
-                    return new V3.SendResult(V3.Result.Failed, addAttachmentToTicket.FailedMessage);
+                    return new SendResult(Result.Failed, addAttachmentToTicket.FailedMessage);
                 }
 
                 break;
@@ -277,21 +280,21 @@ namespace BS.Output.UnfuddleStack
             // Open issue in browser
             if (Output.OpenItemInBrowser)
             {
-              V3.WebHelper.OpenUrl(itemUrl);
+              WebHelper.OpenUrl(itemUrl);
             }
 
 
-            return new V3.SendResult(V3.Result.Success,
-                                     new Output(Output.Name,
-                                                Output.Url,
-                                                (rememberCredentials) ? userName : Output.UserName,
-                                                (rememberCredentials) ? password : Output.Password,
-                                                Output.FileName,
-                                                Output.FileFormat,
-                                                Output.OpenItemInBrowser,
-                                                send.ProjectID,
-                                                messageID,
-                                                ticketNumber));
+            return new SendResult(Result.Success,
+                                  new Output(Output.Name,
+                                             Output.Url,
+                                             (rememberCredentials) ? userName : Output.UserName,
+                                             (rememberCredentials) ? password : Output.Password,
+                                             Output.FileName,
+                                             Output.FileFormat,
+                                             Output.OpenItemInBrowser,
+                                             send.ProjectID,
+                                             messageID,
+                                             ticketNumber));
 
           }
           catch (FaultException ex) when (ex.Reason.ToString() == "Access denied")
@@ -305,7 +308,7 @@ namespace BS.Output.UnfuddleStack
       }
       catch (Exception ex)
       {
-        return new V3.SendResult(V3.Result.Failed, ex.Message);
+        return new SendResult(Result.Failed, ex.Message);
       }
 
     }

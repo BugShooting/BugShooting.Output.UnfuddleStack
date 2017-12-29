@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 
-namespace BS.Output.UnfuddleStack
+namespace BugShooting.Output.UnfuddleStack
 {
   partial class Credentials : Window
   {

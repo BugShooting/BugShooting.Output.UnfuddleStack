@@ -8,7 +8,7 @@ using System.Web;
 using System.Xml;
 using System.Linq;
 
-namespace BS.Output.UnfuddleStack
+namespace BugShooting.Output.UnfuddleStack
 {
   internal class UnfuddleStackProxy
   {
@@ -137,7 +137,7 @@ namespace BS.Output.UnfuddleStack
 
     }
 
-    static internal async Task<Result> AddAttachmentToMessage(string url, string userName, string password, int projectID, int messageID, string fullFileName, byte[] fileBytes, string fileMimeType)
+    static internal async Task<AttachmentResult> AddAttachmentToMessage(string url, string userName, string password, int projectID, int messageID, string fullFileName, byte[] fileBytes, string fileMimeType)
     {
 
       try
@@ -149,7 +149,7 @@ namespace BS.Output.UnfuddleStack
         string attachUrl = GetApiUrl(url, string.Format("projects/{0}/messages/{1}/attachments", projectID, messageID));
         await AttachFile(attachUrl, userName, password, fileKey, fullFileName, fileMimeType);
         
-        return new Result(ResultStatus.Success, null);
+        return new AttachmentResult(ResultStatus.Success, null);
 
       }
       catch (WebException ex) when (ex.Response is HttpWebResponse)
@@ -161,10 +161,10 @@ namespace BS.Output.UnfuddleStack
           switch (response.StatusCode)
           {
             case HttpStatusCode.Unauthorized:
-              return new Result(ResultStatus.LoginFailed, null);
+              return new AttachmentResult(ResultStatus.LoginFailed, null);
 
             default:
-              return new Result(ResultStatus.Failed, response.StatusDescription);
+              return new AttachmentResult(ResultStatus.Failed, response.StatusDescription);
           }
 
         }
@@ -173,7 +173,7 @@ namespace BS.Output.UnfuddleStack
 
     }
 
-    static internal async Task<Result> AddAttachmentToTicket(string url, string userName, string password, int projectID, int ticketNumber, string fullFileName, byte[] fileBytes, string fileMimeType)
+    static internal async Task<AttachmentResult> AddAttachmentToTicket(string url, string userName, string password, int projectID, int ticketNumber, string fullFileName, byte[] fileBytes, string fileMimeType)
     {
 
       try
@@ -187,7 +187,7 @@ namespace BS.Output.UnfuddleStack
         string attachUrl = GetApiUrl(url, string.Format("projects/{0}/tickets/{1}/attachments", projectID, ticketID));
         await AttachFile(attachUrl, userName, password, fileKey, fullFileName, fileMimeType);
 
-        return new Result(ResultStatus.Success, null);
+        return new AttachmentResult(ResultStatus.Success, null);
 
       }
       catch (WebException ex) when (ex.Response is HttpWebResponse)
@@ -199,10 +199,10 @@ namespace BS.Output.UnfuddleStack
           switch (response.StatusCode)
           {
             case HttpStatusCode.Unauthorized:
-              return new Result(ResultStatus.LoginFailed, null);
+              return new AttachmentResult(ResultStatus.LoginFailed, null);
 
             default:
-              return new Result(ResultStatus.Failed, response.StatusDescription);
+              return new AttachmentResult(ResultStatus.Failed, response.StatusDescription);
           }
 
         }
@@ -386,14 +386,14 @@ namespace BS.Output.UnfuddleStack
     Failed = 3
   }
 
-  class Result
+  class AttachmentResult
   {
 
     ResultStatus status;
     string failedMessage;
 
-    public Result(ResultStatus status,
-                  string failedMessage)
+    public AttachmentResult(ResultStatus status,
+                            string failedMessage)
     {
       this.status = status;
       this.failedMessage = failedMessage;

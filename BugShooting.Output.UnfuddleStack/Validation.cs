@@ -5,7 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 
-namespace BS.Output.UnfuddleStack
+namespace BugShooting.Output.UnfuddleStack
 {
   class Validation
   {
