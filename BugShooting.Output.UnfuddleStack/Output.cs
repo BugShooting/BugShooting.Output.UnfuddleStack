@@ -1,4 +1,5 @@
 ﻿using BS.Plugin.V3.Output;
+using System;
 
 namespace BugShooting.Output.UnfuddleStack
 {
@@ -11,7 +12,7 @@ namespace BugShooting.Output.UnfuddleStack
     string userName;
     string password;
     string fileName;
-    string fileFormat;
+    Guid fileFormatID;
     bool openItemInBrowser;
     int lastProjectID;
     int lastMessageID;
@@ -21,8 +22,8 @@ namespace BugShooting.Output.UnfuddleStack
                   string url, 
                   string userName,
                   string password, 
-                  string fileName, 
-                  string fileFormat,
+                  string fileName,
+                  Guid fileFormatID,
                   bool openItemInBrowser,
                   int lastProjectID,
                   int lastMessageID,
@@ -33,7 +34,7 @@ namespace BugShooting.Output.UnfuddleStack
       this.userName = userName;
       this.password = password;
       this.fileName = fileName;
-      this.fileFormat = fileFormat;
+      this.fileFormatID = fileFormatID;
       this.openItemInBrowser = openItemInBrowser;
       this.lastProjectID = lastProjectID;
       this.lastMessageID = lastMessageID;
@@ -70,9 +71,9 @@ namespace BugShooting.Output.UnfuddleStack
       get { return fileName; }
     }
 
-    public string FileFormat
+    public Guid FileFormatID
     {
-      get { return fileFormat; }
+      get { return fileFormatID; }
     }
 
     public bool OpenItemInBrowser

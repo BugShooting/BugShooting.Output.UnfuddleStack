@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using BS.Plugin.V3.Output;
 using BS.Plugin.V3.Common;
 using BS.Plugin.V3.Utilities;
-
+using System.Linq;
 
 namespace BugShooting.Output.UnfuddleStack
 {
@@ -46,7 +46,7 @@ namespace BugShooting.Output.UnfuddleStack
                                  String.Empty, 
                                  String.Empty, 
                                  "Screenshot",
-                                 String.Empty, 
+                                 FileHelper.GetFileFormats().First().ID,
                                  true,
                                  1,
                                  1,
@@ -71,7 +71,7 @@ namespace BugShooting.Output.UnfuddleStack
                           edit.UserName,
                           edit.Password,
                           edit.FileName,
-                          edit.FileFormat,
+                          edit.FileFormatID,
                           edit.OpenItemInBrowser,
                           Output.LastProjectID,
                           Output.LastMessageID,
@@ -95,7 +95,7 @@ namespace BugShooting.Output.UnfuddleStack
       outputValues.Add("Password",Output.Password, true);
       outputValues.Add("OpenItemInBrowser", Convert.ToString(Output.OpenItemInBrowser));
       outputValues.Add("FileName", Output.FileName);
-      outputValues.Add("FileFormat", Output.FileFormat);
+      outputValues.Add("FileFormatID", Output.FileFormatID.ToString());
       outputValues.Add("LastProjectID", Output.LastProjectID.ToString());
       outputValues.Add("LastMessageID", Output.LastMessageID.ToString());
       outputValues.Add("LastTicketNumber", Output.LastTicketNumber.ToString());
@@ -111,8 +111,8 @@ namespace BugShooting.Output.UnfuddleStack
                         OutputValues["Url", ""], 
                         OutputValues["UserName", ""],
                         OutputValues["Password", ""], 
-                        OutputValues["FileName", "Screenshot"], 
-                        OutputValues["FileFormat", ""],
+                        OutputValues["FileName", "Screenshot"],
+                        new Guid(OutputValues["FileFormatID", ""]),
                         Convert.ToBoolean(OutputValues["OpenItemInBrowser", Convert.ToString(true)]),
                         Convert.ToInt32(OutputValues["LastProjectID", "1"]),
                         Convert.ToInt32(OutputValues["LastMessageID", "1"]),
@@ -231,10 +231,11 @@ namespace BugShooting.Output.UnfuddleStack
                 break;
             }
 
+            IFileFormat fileFormat = FileHelper.GetFileFormat(Output.FileFormatID);
 
-            string fullFileName = String.Format("{0}.{1}", send.FileName, FileHelper.GetFileExtension(Output.FileFormat));
-            string fileMimeType = FileHelper.GetMimeType(Output.FileFormat);
-            byte[] fileBytes = FileHelper.GetFileBytes(Output.FileFormat, ImageData);
+            string fullFileName = String.Format("{0}.{1}", send.FileName, fileFormat.FileExtension);
+
+            byte[] fileBytes = FileHelper.GetFileBytes(Output.FileFormatID, ImageData);
             string itemUrl = string.Empty;
 
             switch (send.ItemType)
@@ -242,7 +243,7 @@ namespace BugShooting.Output.UnfuddleStack
               case SendItemType.NewMessage:
               case SendItemType.AttachToMessage:
 
-                AttachmentResult addAttachmentToMessage = await UnfuddleStackProxy.AddAttachmentToMessage(Output.Url, userName, password, send.ProjectID, messageID, fullFileName, fileBytes, fileMimeType);
+                AttachmentResult addAttachmentToMessage = await UnfuddleStackProxy.AddAttachmentToMessage(Output.Url, userName, password, send.ProjectID, messageID, fullFileName, fileBytes, fileFormat.MimeType);
                 switch (addAttachmentToMessage.Status)
                 {
                   case ResultStatus.Success:
@@ -260,7 +261,7 @@ namespace BugShooting.Output.UnfuddleStack
               case SendItemType.NewTicket:
               case SendItemType.AttachToTicket:
 
-                AttachmentResult addAttachmentToTicket = await UnfuddleStackProxy.AddAttachmentToTicket(Output.Url, userName, password, send.ProjectID, ticketNumber, fullFileName, fileBytes, fileMimeType);
+                AttachmentResult addAttachmentToTicket = await UnfuddleStackProxy.AddAttachmentToTicket(Output.Url, userName, password, send.ProjectID, ticketNumber, fullFileName, fileBytes, fileFormat.MimeType);
                 switch (addAttachmentToTicket.Status)
                 {
                   case ResultStatus.Success:
@@ -290,7 +291,7 @@ namespace BugShooting.Output.UnfuddleStack
                                              (rememberCredentials) ? userName : Output.UserName,
                                              (rememberCredentials) ? password : Output.Password,
                                              Output.FileName,
-                                             Output.FileFormat,
+                                             Output.FileFormatID,
                                              Output.OpenItemInBrowser,
                                              send.ProjectID,
                                              messageID,
